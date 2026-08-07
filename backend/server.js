@@ -14,11 +14,13 @@ const app = express();
 const corsOptions = {
   origin: [
     'http://localhost:3000',
+    'https://resturant-app1frontend.vercel.app',
+    'https://frontend-theta-two-eh8vrf7x5c.vercel.app',
     'https://resturant-app-frontend-delta.vercel.app',
     'https://resturant-app-backend-red.vercel.app',
     'https://resturant-bussiness-api.vercel.app',
     process.env.FRONTEND_URL ||
-      'https://resturant-app-frontend-delta.vercel.app',
+      'https://resturant-app1frontend.vercel.app',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

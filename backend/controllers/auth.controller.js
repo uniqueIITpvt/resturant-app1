@@ -1204,7 +1204,8 @@ class AuthController {
       await user.save();
 
       // Create reset URL
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl =
+        process.env.FRONTEND_URL || 'https://resturant-app1frontend.vercel.app';
       const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
 
       // Send email with reset link
