@@ -1,0 +1,335 @@
+openapi: 3.0.0
+paths:
+  /api/payments/initialize:
+    post:
+      tags:
+        - Payments
+      summary: Initialize a payment session
+      description: Creates a new payment session with Helcim payment gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentInitializeRequest'
+      responses:
+        '200':
+          description: Payment session initialized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentInitializeResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/purchase:
+    post:
+      tags:
+        - Payments
+      summary: Process a direct purchase
+      description: Process a direct credit card purchase through Helcim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DirectPurchaseRequest'
+      responses:
+        '200':
+          description: Purchase processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirectPurchaseResponse'
+        '400':
+          description: Invalid payment information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/status/{helcimPayId}:
+    get:
+      tags:
+        - Payments
+      summary: Check payment status
+      description: Check the status of a payment session
+      parameters:
+        - in: path
+          name: helcimPayId
+          required: true
+          schema:
+            type: string
+          description: Payment session ID
+      responses:
+        '200':
+          description: Payment status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatusResponse'
+        '404':
+          description: Payment session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/verify:
+    post:
+      tags:
+        - Payments
+      summary: Verify HelcimPay.js payment
+      description: Verify a payment completed through HelcimPay.js
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentVerifyRequest'
+      responses:
+        '200':
+          description: Payment verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentVerifyResponse'
+        '400':
+          description: Invalid transaction data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Verification error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    PaymentInitializeRequest:
+      type: object
+      required:
+        - amount
+        - returnUrl
+      properties:
+        amount:
+          type: number
+          description: Payment amount
+          example: 99.99
+        customerCode:
+          type: string
+          description: Optional customer identifier
+          example: 'CUST123'
+        invoiceNumber:
+          type: string
+          description: Optional invoice number
+          example: 'INV2024001'
+        returnUrl:
+          type: string
+          description: URL to return to after payment
+          example: 'https://yourapp.com/payment/complete'
+        homepageUrl:
+          type: string
+          description: URL to return to if payment is cancelled
+          example: 'https://yourapp.com'
+        customerData:
+          type: object
+          properties:
+            firstName:
+              type: string
+              example: 'John'
+            lastName:
+              type: string
+              example: 'Doe'
+            email:
+              type: string
+              format: email
+              example: 'john@example.com'
+
+    PaymentInitializeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        helcimPayId:
+          type: string
+          example: 'helcim-1679012345678-123'
+        checkoutToken:
+          type: string
+          example: 'tok_abc123xyz'
+        paymentUrl:
+          type: string
+          example: 'https://secure.helcim.app/helcim-pay/tok_abc123xyz'
+        message:
+          type: string
+          example: 'Payment initialized successfully'
+
+    DirectPurchaseRequest:
+      type: object
+      required:
+        - amount
+        - cardNumber
+        - cardExpiry
+        - cardCVV
+      properties:
+        amount:
+          type: number
+          example: 99.99
+        currency:
+          type: string
+          default: 'USD'
+          example: 'USD'
+        cardNumber:
+          type: string
+          example: '4242424242424242'
+        cardExpiry:
+          type: string
+          example: '12/25'
+        cardCVV:
+          type: string
+          example: '123'
+        customerCode:
+          type: string
+          example: 'CUST123'
+        invoiceNumber:
+          type: string
+          example: 'INV2024001'
+        description:
+          type: string
+          example: 'Purchase description'
+        billingAddress:
+          type: object
+          properties:
+            address1:
+              type: string
+              example: '123 Main St'
+            city:
+              type: string
+              example: 'New York'
+            province:
+              type: string
+              example: 'NY'
+            country:
+              type: string
+              example: 'USA'
+            postalCode:
+              type: string
+              example: '10001'
+
+    DirectPurchaseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        transactionId:
+          type: string
+          example: 'txn_123abc'
+        responseCode:
+          type: string
+          example: '000'
+        responseMessage:
+          type: string
+          example: 'Transaction approved'
+        avsResponse:
+          type: string
+          example: 'Y'
+        cvvResponse:
+          type: string
+          example: 'M'
+
+    PaymentStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        status:
+          type: string
+          enum: [pending, completed]
+          example: 'completed'
+        transactionId:
+          type: string
+          example: 'txn_123abc'
+        redirectUrl:
+          type: string
+          example: 'https://yourapp.com'
+        timestamp:
+          type: integer
+          example: 1679012345678
+
+    PaymentVerifyRequest:
+      type: object
+      required:
+        - transactionData
+      properties:
+        transactionData:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                transactionId:
+                  type: string
+                  example: 'txn_123abc'
+                amount:
+                  type: number
+                  example: 99.99
+                status:
+                  type: string
+                  example: 'APPROVED'
+
+    PaymentVerifyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        transactionId:
+          type: string
+          example: 'txn_123abc'
+        amount:
+          type: number
+          example: 99.99
+        message:
+          type: string
+          example: 'Payment verification successful'
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: 'Invalid payment information'
+        details:
+          type: string
+          example: 'Card number is invalid'

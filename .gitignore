@@ -1,0 +1,118 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/**/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/.nyc_output
+/cypress/videos
+/cypress/screenshots
+
+# next.js
+/**/.next/
+/out/
+
+# build outputs
+/build
+/dist
+/**/build
+/**/dist
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+.cache/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+**/.env
+**/.env.*
+!**/.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# PWA files
+**/public/workbox-*.js
+**/public/sw.js
+**/public/service-worker.js
+
+# Logs
+logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Serverless directories
+.serverless/
+
+# Local data files
+/data/
+
+# MongoDB data
+/mongodb/data/
+/mongo-data/
+
+# Uploads
+**/uploads/
+**/upload/
+**/public/uploads/
+**/assets/uploads/
+
+# Local development files
+.env.local
+.local
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Caching and build artifacts
+**/.cache/
+**/.temp/
+.rollup.cache/
+.parcel-cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

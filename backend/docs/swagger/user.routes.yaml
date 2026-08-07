@@ -1,0 +1,471 @@
+tags:
+  - name: Users
+    description: User management operations
+
+paths:
+  /api/users:
+    get:
+      summary: Get all users (admin only)
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        email:
+                          type: string
+                        role:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                        isVerified:
+                          type: boolean
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        500:
+          description: Server error
+
+  /api/users/me:
+    get:
+      summary: Get current user profile
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Current user profile details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      isVerified:
+                        type: boolean
+                      createdAt:
+                        type: string
+                        format: date-time
+        401:
+          description: Unauthorized - missing or invalid token
+        500:
+          description: Server error
+
+    put:
+      summary: Update current user profile
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: User's new name
+                currentPassword:
+                  type: string
+                  format: password
+                  description: Current password (required for password change)
+                newPassword:
+                  type: string
+                  format: password
+                  description: New password
+      responses:
+        200:
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+        400:
+          description: Invalid input or incorrect current password
+        401:
+          description: Unauthorized - missing or invalid token
+        500:
+          description: Server error
+
+  /api/users/me/addresses:
+    get:
+      summary: Get current user addresses
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of user's addresses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+        401:
+          description: Unauthorized - missing or invalid token
+        500:
+          description: Server error
+
+    post:
+      summary: Add a new address for current user
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+      responses:
+        201:
+          description: Address added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  address:
+                    $ref: '#/components/schemas/Address'
+        400:
+          description: Invalid input data
+        401:
+          description: Unauthorized - missing or invalid token
+        500:
+          description: Server error
+
+  /api/users/me/addresses/{addressId}:
+    put:
+      summary: Update an address for current user
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: addressId
+          required: true
+          schema:
+            type: string
+          description: Address ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+      responses:
+        200:
+          description: Address updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  address:
+                    $ref: '#/components/schemas/Address'
+        400:
+          description: Invalid input data
+        401:
+          description: Unauthorized - missing or invalid token
+        404:
+          description: Address not found
+        500:
+          description: Server error
+
+    delete:
+      summary: Delete an address
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: addressId
+          required: true
+          schema:
+            type: string
+          description: Address ID
+      responses:
+        200:
+          description: Address deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        401:
+          description: Unauthorized - missing or invalid token
+        404:
+          description: Address not found
+        500:
+          description: Server error
+
+  /api/users/me/addresses/{addressId}/default:
+    patch:
+      summary: Set an address as default
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: addressId
+          required: true
+          schema:
+            type: string
+          description: Address ID
+      responses:
+        200:
+          description: Address set as default
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  address:
+                    $ref: '#/components/schemas/Address'
+        401:
+          description: Unauthorized - missing or invalid token
+        404:
+          description: Address not found
+        500:
+          description: Server error
+
+  /api/users/{userId}/role:
+    patch:
+      summary: Update user role (superadmin only)
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [user, admin, superadmin]
+                  description: New role for the user
+      responses:
+        200:
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        400:
+          description: Invalid role
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have superadmin rights
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+  /api/users/{userId}/verify:
+    patch:
+      summary: Manually verify a user (superadmin only)
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        200:
+          description: User verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      isVerified:
+                        type: boolean
+        400:
+          description: User is already verified
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have superadmin rights
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+  /api/users/{userId}:
+    delete:
+      summary: Delete user (superadmin only)
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        200:
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  userId:
+                    type: string
+        400:
+          description: Cannot delete your own account
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have superadmin rights
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+components:
+  schemas:
+    Address:
+      type: object
+      required:
+        - addressType
+        - name
+        - phoneNumber
+        - street
+        - city
+        - state
+        - postalCode
+        - country
+      properties:
+        _id:
+          type: string
+          description: The auto-generated id of the address
+        addressType:
+          type: string
+          enum: [home, work, other]
+          description: Type of address
+        name:
+          type: string
+          description: Recipient name
+        phoneNumber:
+          type: string
+          description: Contact phone number
+        street:
+          type: string
+          description: Street address
+        city:
+          type: string
+          description: City
+        state:
+          type: string
+          description: State or province
+        postalCode:
+          type: string
+          description: Postal or ZIP code
+        country:
+          type: string
+          description: Country
+        additionalDirections:
+          type: string
+          description: Additional delivery directions
+        landmark:
+          type: string
+          description: Nearby landmark
+        isDefault:
+          type: boolean
+          description: Whether this is the default address

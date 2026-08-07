@@ -1,0 +1,177 @@
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        _id:
+          type: string
+          description: The auto-generated id of the user
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          format: password
+          description: User's password (hashed, never returned in responses)
+        role:
+          type: string
+          enum: [user, admin, superadmin]
+          description: User's role in the system
+        isVerified:
+          type: boolean
+          description: Whether the user's email is verified
+        createdAt:
+          type: string
+          format: date-time
+          description: When the user was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the user was last updated
+
+    AddonOption:
+      type: object
+      required:
+        - name
+        - price
+      properties:
+        name:
+          type: string
+          description: Name of the addon option
+        price:
+          type: number
+          description: Price of the addon option
+
+    AddonGroup:
+      type: object
+      required:
+        - title
+        - options
+      properties:
+        title:
+          type: string
+          description: Title of the addon group
+        required:
+          type: boolean
+          description: Whether the addon group is required
+          default: false
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddonOption'
+
+    Product:
+      type: object
+      required:
+        - name
+        - description
+        - price
+        - category
+      properties:
+        _id:
+          type: string
+          description: The auto-generated id of the product
+        name:
+          type: string
+          description: Product name
+        description:
+          type: string
+          description: Product description
+        price:
+          type: number
+          description: Product base price
+        category:
+          type: string
+          description: Product category
+        image:
+          type: object
+          properties:
+            public_id:
+              type: string
+            url:
+              type: string
+        addonGroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddonGroup'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Coupon:
+      type: object
+      required:
+        - code
+        - discount
+        - expiryDate
+      properties:
+        _id:
+          type: string
+          description: The auto-generated id of the coupon
+        code:
+          type: string
+          description: Coupon code
+        discount:
+          type: number
+          description: Discount percentage
+        expiryDate:
+          type: string
+          format: date-time
+          description: Expiration date of the coupon
+        minPurchase:
+          type: number
+          description: Minimum purchase amount required
+        maxUses:
+          type: number
+          description: Maximum number of times the coupon can be used
+        usedCount:
+          type: number
+          description: Number of times the coupon has been used
+        active:
+          type: boolean
+          description: Whether the coupon is active
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      required:
+        - name
+      properties:
+        _id:
+          type: string
+          description: The auto-generated id of the category
+        name:
+          type: string
+          description: Category name
+        description:
+          type: string
+          description: Category description
+        image:
+          type: object
+          properties:
+            public_id:
+              type: string
+            url:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

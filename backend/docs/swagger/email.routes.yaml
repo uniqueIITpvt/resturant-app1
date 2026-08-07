@@ -1,0 +1,241 @@
+tags:
+  - name: Email
+    description: Email sending operations
+
+paths:
+  /api/email/send-event-offer/{userId}/{eventOfferId}:
+    post:
+      summary: Send event/offer email to a specific user
+      tags: [Email]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: ID of the user to send email to
+        - in: path
+          name: eventOfferId
+          required: true
+          schema:
+            type: string
+          description: ID of the event/offer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customMessage:
+                  type: string
+                  description: Optional custom message to include in the email
+      responses:
+        200:
+          description: Email sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  success:
+                    type: boolean
+        400:
+          description: Invalid input
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: User or event/offer not found
+        500:
+          description: Server error
+
+  /api/email/broadcast-event-offer/{eventOfferId}:
+    post:
+      summary: Broadcast event/offer email to all users
+      tags: [Email]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: eventOfferId
+          required: true
+          schema:
+            type: string
+          description: ID of the event/offer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customMessage:
+                  type: string
+                  description: Optional custom message to include in the email
+      responses:
+        200:
+          description: Broadcast initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                    description: Number of emails scheduled to be sent
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: Event/offer not found
+        500:
+          description: Server error
+
+  /api/email/welcome/{userId}:
+    post:
+      summary: Send welcome email to a user
+      tags: [Email]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: ID of the user to send welcome email to
+      responses:
+        200:
+          description: Welcome email sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  success:
+                    type: boolean
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+  /api/email/custom/{userId}:
+    post:
+      summary: Send custom email to a specific user
+      tags: [Email]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: ID of the user to send email to
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subject
+                - message
+              properties:
+                subject:
+                  type: string
+                  description: Email subject line
+                message:
+                  type: string
+                  description: Email body content (can be HTML)
+      responses:
+        200:
+          description: Email sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  success:
+                    type: boolean
+        400:
+          description: Invalid input
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+  /api/email/bulk-custom:
+    post:
+      summary: Send custom email to multiple users
+      tags: [Email]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userIds
+                - subject
+                - message
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of user IDs to send emails to
+                subject:
+                  type: string
+                  description: Email subject line
+                message:
+                  type: string
+                  description: Email body content (can be HTML)
+      responses:
+        200:
+          description: Bulk email sending initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                    description: Number of emails scheduled to be sent
+        400:
+          description: Invalid input
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        500:
+          description: Server error

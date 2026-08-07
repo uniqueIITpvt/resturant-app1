@@ -1,0 +1,947 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import toast from 'react-hot-toast';
+import api from '@/utils/api';
+import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
+import ConfirmModal from '@/components/modals/ConfirmModal';
+import {
+  ProfileSidebar,
+  MobileHeader,
+  PersonalInfoTab,
+  OrdersTab,
+  AddressesTab,
+  SettingsTab,
+  UserProfile,
+  Order,
+  Address,
+  EligibleOrder,
+  ReviewFormData,
+} from '@/components/profile';
+
+// API URL for backend requests
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+export default function ProfilePage() {
+  const router = useRouter();
+  const { user, logout, isAuthenticated, token, updateUser } = useAuth();
+
+  // Helper to get the saved tab from localStorage or use default
+  const getInitialTab = () => {
+    if (typeof window !== 'undefined') {
+      // Check for tab query parameter in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+
+      if (
+        tabParam &&
+        (tabParam === 'personal-info' ||
+          tabParam === 'orders' ||
+          tabParam === 'addresses' ||
+          tabParam === 'settings')
+      ) {
+        return tabParam as
+          | 'personal-info'
+          | 'orders'
+          | 'addresses'
+          | 'settings';
+      }
+
+      // Fall back to localStorage
+      const savedTab = localStorage.getItem('profileActiveTab');
+      if (
+        savedTab === 'personal-info' ||
+        savedTab === 'orders' ||
+        savedTab === 'addresses' ||
+        savedTab === 'settings'
+      ) {
+        return savedTab as
+          | 'personal-info'
+          | 'orders'
+          | 'addresses'
+          | 'settings';
+      }
+    }
+    return 'personal-info';
+  };
+
+  // State for current tab
+  const [currentTab, setCurrentTab] = useState(getInitialTab());
+
+  // Loading states
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingOrders, setIsFetchingOrders] = useState(false);
+  const [isFetchingAddresses, setIsFetchingAddresses] = useState(false);
+
+  // Profile editing state
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Order modals state
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [isOrderDetailsModalOpen, setIsOrderDetailsModalOpen] = useState(false);
+  const [isCancelOrderModalOpen, setIsCancelOrderModalOpen] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(
+    null
+  );
+  const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
+  const [isDeleteAddressModalOpen, setIsDeleteAddressModalOpen] =
+    useState(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
+    useState(false);
+
+  // Review modal states
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [eligibleOrders, setEligibleOrders] = useState<EligibleOrder[]>([]);
+  const [selectedReviewOrder, setSelectedReviewOrder] =
+    useState<EligibleOrder | null>(null);
+  const [selectedReviewProduct, setSelectedReviewProduct] = useState<
+    any | null
+  >(null);
+  const [reviewForm, setReviewForm] = useState<ReviewFormData>({
+    orderId: '',
+    productId: '',
+    rating: 0,
+    comment: '',
+    images: [],
+  });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [userReviews, setUserReviews] = useState<
+    { orderId: string; productId: string }[]
+  >([]);
+  const [showAllOrders, setShowAllOrders] = useState(false);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+
+  // Profile state
+  const [profile, setProfile] = useState<UserProfile>({
+    name: '',
+    email: '',
+    phone: '',
+    profileImage: '',
+  });
+
+  // Mobile state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Orders state
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  // Addresses state
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    name: '',
+    phoneNumber: '',
+    street: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'USA',
+    addressType: 'home',
+    isDefault: false,
+    additionalDirections: '',
+    landmark: '',
+  });
+
+  // Profile image states
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
+    null
+  );
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // Save tab selection to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('profileActiveTab', currentTab);
+    }
+  }, [currentTab]);
+
+  // Listen for URL changes to update the active tab
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleURLChange = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+
+        if (
+          tabParam &&
+          (tabParam === 'personal-info' ||
+            tabParam === 'orders' ||
+            tabParam === 'addresses' ||
+            tabParam === 'settings')
+        ) {
+          setCurrentTab(
+            tabParam as 'personal-info' | 'orders' | 'addresses' | 'settings'
+          );
+        }
+      };
+
+      // Run once on component mount
+      handleURLChange();
+
+      // Add event listener for popstate (back/forward navigation)
+      window.addEventListener('popstate', handleURLChange);
+
+      return () => {
+        window.removeEventListener('popstate', handleURLChange);
+      };
+    }
+  }, []);
+
+  // Function to handle tab changes
+  const handleTabChange = (
+    tabId: 'personal-info' | 'orders' | 'addresses' | 'settings'
+  ) => {
+    setCurrentTab(tabId);
+
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('profileActiveTab', tabId);
+
+      // Update the URL without full page reload
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tabId);
+      window.history.pushState({}, '', url);
+    }
+  };
+
+  useEffect(() => {
+    // Check if authentication is still loading
+    const checkAuth = async () => {
+      try {
+        // If auth is still loading, wait
+        if (isAuthLoading) {
+          return;
+        }
+
+        // Only redirect if we're certain the user is not authenticated
+        if (user === null && !isAuthLoading) {
+          // Add a small delay before redirecting to avoid flickering
+          setTimeout(() => {
+            router.push('/auth/login');
+          }, 100);
+          return;
+        }
+
+        // Set initial profile data from user context
+        setProfile((prevProfile) => ({
+          ...prevProfile,
+          name: user?.name || '',
+          email: user?.email || '',
+          phone: user?.mobileNumber || '',
+        }));
+
+        // Fetch user's complete profile from API
+        fetchUserProfile();
+
+        // Fetch user's orders from API
+        fetchUserOrders();
+
+        // Fetch user's addresses from API
+        fetchUserAddresses();
+
+        // Fetch user's reviews to check which products have been reviewed
+        fetchUserReviews();
+      } catch (error) {
+        console.error('Authentication error:', error);
+        toast.error('Failed to load profile data');
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [user, router, isAuthenticated, isAuthLoading]);
+
+  const fetchUserProfile = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.user.getProfile();
+
+      if (response.success) {
+        setProfile({
+          name: response.data.name || '',
+          email: response.data.email || '',
+          phone: response.data.phoneNumber || '',
+          profileImage: response.data.profileImage || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchUserOrders = async () => {
+    if (!token) return;
+
+    setIsFetchingOrders(true);
+    try {
+      const response = await fetch(`${API_URL}/api/orders/user`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch orders');
+      }
+
+      const ordersData = await response.json();
+      // Store all orders and show only the 3 most recent initially
+      setAllOrders(ordersData);
+      setOrders(ordersData.slice(0, 3));
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setIsFetchingOrders(false);
+    }
+  };
+
+  // Function to handle "See All Orders" click
+  const handleSeeAllOrders = () => {
+    setShowAllOrders(true);
+    setOrders(allOrders);
+
+    // Smooth scroll to the orders section
+    setTimeout(() => {
+      const ordersSection = document.getElementById('orders-section');
+      if (ordersSection) {
+        ordersSection.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    }, 100);
+  };
+
+  // Function to handle "Show Less" click
+  const handleShowLessOrders = () => {
+    setShowAllOrders(false);
+    setOrders(allOrders.slice(0, 3));
+
+    // Smooth scroll to the orders section
+    setTimeout(() => {
+      const ordersSection = document.getElementById('orders-section');
+      if (ordersSection) {
+        ordersSection.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    }, 100);
+  };
+
+  // Fetch user addresses
+  const fetchUserAddresses = async () => {
+    if (!token) return;
+
+    setIsFetchingAddresses(true);
+    try {
+      console.log('Fetching addresses...');
+
+      const addressResponse = await api.addresses.getAll();
+      console.log('Addresses response:', addressResponse);
+
+      setAddresses(addressResponse.data || []);
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      toast.error('Failed to load addresses');
+    } finally {
+      setIsFetchingAddresses(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfile((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setProfileImageFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setProfileImagePreview(previewUrl);
+  };
+
+  const uploadProfileImage = async () => {
+    if (!profileImageFile || !token) return null;
+
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', profileImageFile);
+
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      toast.error('Failed to upload profile image');
+      return null;
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+
+    setIsLoading(true);
+    try {
+      // Remove image upload logic from the main form submission
+      // Only upload profile image if selected
+      if (profileImageFile) {
+        await uploadProfileImage();
+      }
+
+      // Update user profile data (name and phone number)
+      const userData = {
+        name: profile.name,
+        phoneNumber: profile.phone,
+      };
+
+      const response = await api.user.updateProfile(userData);
+
+      if (response.success) {
+        // Update user in auth context
+        updateUser({
+          name: response.data.name,
+          phoneNumber: response.data.phoneNumber,
+        });
+
+        toast.success('Profile updated successfully');
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Logged out successfully');
+    router.push('/auth/login');
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      };
+      return new Date(dateString).toLocaleDateString(undefined, options);
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleteAccountModalOpen(false);
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/users/delete-account`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete account');
+      }
+
+      // Log the user out and clear their data
+      logout();
+      toast.success('Account deleted successfully');
+      router.push('/');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: Order['status']) => {
+    switch (status) {
+      case 'pending':
+        return (
+          <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'>
+            Pending
+          </span>
+        );
+      case 'processing':
+        return (
+          <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+            Processing
+          </span>
+        );
+      case 'completed':
+        return (
+          <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
+            Completed
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800'>
+            Cancelled
+          </span>
+        );
+      default:
+        return (
+          <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800'>
+            Unknown
+          </span>
+        );
+    }
+  };
+
+  // Reset address form
+  const resetAddressForm = () => {
+    setAddressForm({
+      name: user?.name || '',
+      phoneNumber: user?.mobileNumber || '',
+      street: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: 'USA',
+      addressType: 'home',
+      isDefault: false,
+      additionalDirections: '',
+      landmark: '',
+    });
+    setIsAddingAddress(false);
+    setEditingAddressId(null);
+  };
+
+  // Load address data for editing
+  useEffect(() => {
+    if (editingAddressId && addresses) {
+      const addressToEdit = addresses.find(
+        (addr) => addr._id === editingAddressId
+      );
+      if (addressToEdit) {
+        setAddressForm({
+          name: addressToEdit.name || '',
+          phoneNumber: addressToEdit.phoneNumber || '',
+          street: addressToEdit.street || '',
+          city: addressToEdit.city || '',
+          state: addressToEdit.state || '',
+          postalCode: addressToEdit.postalCode || '',
+          country: addressToEdit.country || 'USA',
+          addressType: addressToEdit.addressType || 'home',
+          isDefault: addressToEdit.isDefault || false,
+          additionalDirections: addressToEdit.additionalDirections || '',
+          landmark: addressToEdit.landmark || '',
+        });
+        setIsAddingAddress(true);
+      }
+    }
+  }, [editingAddressId, addresses, user]);
+
+  // Handle address form change
+  const handleAddressFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const target = e.target;
+    const name = target.name;
+    const value =
+      target.type === 'checkbox'
+        ? (target as HTMLInputElement).checked
+        : target.value;
+
+    setAddressForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle address form submission
+  const handleAddressFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      console.log('Submitting address form:', addressForm);
+
+      if (editingAddressId) {
+        console.log(`Updating address with ID: ${editingAddressId}`);
+        await api.addresses.update(editingAddressId, addressForm);
+        toast.success('Address updated successfully');
+      } else {
+        console.log('Creating new address');
+        await api.addresses.create(addressForm);
+        toast.success('Address added successfully');
+      }
+
+      resetAddressForm();
+      fetchUserAddresses();
+    } catch (error) {
+      console.error('Error saving address:', error);
+      toast.error('Failed to save address');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openDeleteAddressModal = (addressId: string) => {
+    setAddressToDelete(addressId);
+    setIsDeleteAddressModalOpen(true);
+  };
+
+  const closeDeleteAddressModal = () => {
+    setIsDeleteAddressModalOpen(false);
+    setAddressToDelete(null);
+  };
+
+  const handleDeleteAddress = async (addressId: string) => {
+    openDeleteAddressModal(addressId);
+  };
+
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+
+    setIsLoading(true);
+    try {
+      const response = await api.addresses.delete(addressToDelete);
+
+      if (response.success) {
+        // Remove the address from local state
+        setAddresses(addresses.filter((addr) => addr._id !== addressToDelete));
+        toast.success('Address deleted successfully');
+      }
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      toast.error('Failed to delete address');
+    } finally {
+      setIsLoading(false);
+      closeDeleteAddressModal();
+    }
+  };
+
+  // Function to view order details
+  const handleViewOrderDetails = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setIsOrderDetailsModalOpen(true);
+  };
+
+  // Function to close order details modal
+  const closeOrderDetailsModal = () => {
+    setIsOrderDetailsModalOpen(false);
+    setSelectedOrderId(null);
+  };
+
+  // First, let's add the cancelOrder function in the ProfilePage component
+  const cancelOrder = async (orderId: string) => {
+    try {
+      setCancellingOrderId(orderId);
+      const response = await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to cancel order');
+      }
+
+      // Update the order in the local state
+      setOrders(
+        orders.map((order) =>
+          order._id === orderId ? { ...order, status: 'cancelled' } : order
+        )
+      );
+
+      toast.success('Order cancelled successfully');
+      closeCancelOrderModal();
+
+      // Refresh orders
+      fetchUserOrders();
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      toast.error('Failed to cancel order');
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
+
+  // Open cancel order modal
+  const openCancelOrderModal = (orderId: string) => {
+    setCancellingOrderId(orderId);
+    setIsCancelOrderModalOpen(true);
+  };
+
+  // Close cancel order modal
+  const closeCancelOrderModal = () => {
+    setIsCancelOrderModalOpen(false);
+    setCancellingOrderId(null);
+  };
+
+  const openDeleteAccountModal = () => {
+    setIsDeleteAccountModalOpen(true);
+  };
+
+  // Review functionality
+  const fetchEligibleOrders = async () => {
+    try {
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/api/reviews/eligible-orders`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch eligible orders');
+      }
+
+      const data = await response.json();
+      setEligibleOrders(data);
+    } catch (err) {
+      console.error('Error fetching eligible orders:', err);
+      toast.error('Failed to load reviewable orders');
+    }
+  };
+
+  const openReviewModal = async () => {
+    await fetchUserReviews();
+    await fetchEligibleOrders();
+    setShowReviewModal(true);
+  };
+
+  // Function to fetch user's reviews to check which products have been reviewed
+  const fetchUserReviews = async () => {
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/reviews/my-reviews`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user reviews');
+      }
+
+      const data = await response.json();
+      // Extract order and product IDs from reviews to track what's been reviewed
+      const reviewedItems = data.reviews.map(
+        (review: { order: { _id: string }; product: { id: string } }) => ({
+          orderId: review.order._id,
+          productId: review.product.id,
+        })
+      );
+      setUserReviews(reviewedItems);
+    } catch (error) {
+      console.error('Error fetching user reviews:', error);
+    }
+  };
+
+  // Helper function to check if a product has been reviewed
+  const isProductReviewed = (orderId: string, productId: string) => {
+    return userReviews.some(
+      (review) => review.orderId === orderId && review.productId === productId
+    );
+  };
+
+  // Show loading state while checking authentication
+  if (isAuthLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
+        <div className='w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin'></div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated (will redirect in useEffect)
+  if (user === null && !isAuthLoading) {
+    return null;
+  }
+
+  return (
+    <div className='min-h-screen bg-gray-50 pt-16'>
+      <MobileHeader
+        profile={profile}
+        currentTab={currentTab}
+        isLoading={isFetchingAddresses}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onEditProfile={() => setIsEditing(true)}
+        onTabChange={handleTabChange}
+        onLogout={handleLogout}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
+      />
+
+      <div className='container mx-auto px-4 py-6 lg:py-10'>
+        <div className='flex flex-col lg:flex-row gap-6'>
+          {/* Profile sidebar - hidden on mobile */}
+          <div className='hidden lg:block lg:w-1/4'>
+            <ProfileSidebar
+              profile={profile}
+              currentTab={currentTab}
+              isLoading={isFetchingAddresses}
+              onEditProfile={() => setIsEditing(true)}
+              onTabChange={handleTabChange}
+              onLogout={handleLogout}
+            />
+          </div>
+
+          {/* Main Content */}
+          <div className='flex-1'>
+            {currentTab === 'personal-info' && (
+              <PersonalInfoTab
+                profile={profile}
+                addresses={addresses}
+                isLoading={isFetchingAddresses}
+                isEditing={isEditing}
+                isUploadingImage={isUploadingImage}
+                profileImagePreview={profileImagePreview}
+                onEditToggle={() => setIsEditing(!isEditing)}
+                onProfileChange={handleChange}
+                onImageChange={handleProfileImageChange}
+                onSubmit={handleSubmit}
+                onTabChange={handleTabChange}
+                onDeleteAddress={handleDeleteAddress}
+                onEditAddress={(addressId) => {
+                  handleTabChange('addresses');
+                  setEditingAddressId(addressId);
+                }}
+              />
+            )}
+
+            {currentTab === 'orders' && (
+              <OrdersTab
+                orders={orders}
+                allOrders={allOrders}
+                showAllOrders={showAllOrders}
+                isFetchingOrders={isFetchingOrders}
+                onViewOrderDetails={handleViewOrderDetails}
+                onCancelOrder={openCancelOrderModal}
+                onOpenReviewModal={openReviewModal}
+                onSeeAllOrders={handleSeeAllOrders}
+                onShowLessOrders={handleShowLessOrders}
+                isProductReviewed={isProductReviewed}
+                formatDate={formatDate}
+                getStatusBadge={getStatusBadge}
+              />
+            )}
+
+            {currentTab === 'addresses' && (
+              <AddressesTab
+                addresses={addresses}
+                isLoading={isLoading}
+                isFetchingAddresses={isFetchingAddresses}
+                isAddingAddress={isAddingAddress}
+                isSubmitting={isSubmitting}
+                editingAddressId={editingAddressId}
+                addressForm={addressForm}
+                onAddNewAddress={() => {
+                  resetAddressForm();
+                  setIsAddingAddress(true);
+                }}
+                onEditAddress={(addressId) => setEditingAddressId(addressId)}
+                onDeleteAddress={handleDeleteAddress}
+                onCancelAddressForm={() => {
+                  resetAddressForm();
+                  setIsAddingAddress(false);
+                  setEditingAddressId(null);
+                }}
+                onAddressFormChange={handleAddressFormChange}
+                onAddressFormSubmit={handleAddressFormSubmit}
+              />
+            )}
+
+            {currentTab === 'settings' && (
+              <SettingsTab
+                isLoading={isLoading}
+                onDeleteAccount={openDeleteAccountModal}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Account Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteAccountModalOpen}
+        title='Delete Account'
+        message='Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.'
+        confirmText='Delete Account'
+        cancelText='Cancel'
+        type='delete'
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setIsDeleteAccountModalOpen(false)}
+      />
+
+      {/* Delete Address Modal */}
+      <ConfirmModal
+        isOpen={isDeleteAddressModalOpen}
+        title='Delete Address'
+        message='Are you sure you want to delete this address? This action cannot be undone.'
+        confirmText='Delete Address'
+        cancelText='Cancel'
+        type='delete'
+        onConfirm={confirmDeleteAddress}
+        onCancel={closeDeleteAddressModal}
+      />
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        isOpen={isOrderDetailsModalOpen}
+        onClose={closeOrderDetailsModal}
+        orderId={selectedOrderId}
+        token={token}
+      />
+
+      {/* Cancel Order Modal */}
+      <ConfirmModal
+        isOpen={isCancelOrderModalOpen}
+        title='Cancel Order'
+        message='Are you sure you want to cancel this order? This action cannot be undone.'
+        confirmText='Cancel Order'
+        cancelText='Keep Order'
+        type='delete'
+        onConfirm={() => cancellingOrderId && cancelOrder(cancellingOrderId)}
+        onCancel={closeCancelOrderModal}
+      />
+    </div>
+  );
+}

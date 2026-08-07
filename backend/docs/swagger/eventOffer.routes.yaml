@@ -1,0 +1,426 @@
+tags:
+  - name: EventOffers
+    description: Event and offer management
+
+paths:
+  /api/event-offers/active:
+    get:
+      summary: Get all active event offers
+      tags: [EventOffers]
+      responses:
+        200:
+          description: List of active event offers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventOffer'
+        500:
+          description: Server error
+
+  /api/event-offers/type/{type}:
+    get:
+      summary: Get event offers by type
+      tags: [EventOffers]
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+            enum: [holiday, seasonal, promotion, special]
+          description: Type of event offers to retrieve
+      responses:
+        200:
+          description: List of event offers of the specified type
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventOffer'
+        400:
+          description: Invalid type specified
+        500:
+          description: Server error
+
+  /api/event-offers/{id}/track-click:
+    post:
+      summary: Track when a user clicks on an offer
+      tags: [EventOffers]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Event offer ID
+      responses:
+        200:
+          description: Click tracked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  success:
+                    type: boolean
+        401:
+          description: Unauthorized - missing or invalid token
+        404:
+          description: Event offer not found
+        500:
+          description: Server error
+
+  /api/event-offers/{id}/track-conversion:
+    post:
+      summary: Track when a user converts (uses) an offer
+      tags: [EventOffers]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Event offer ID
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orderId:
+                  type: string
+                  description: Optional order ID associated with this conversion
+                amount:
+                  type: number
+                  description: Optional amount of the purchase
+      responses:
+        200:
+          description: Conversion tracked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  success:
+                    type: boolean
+        401:
+          description: Unauthorized - missing or invalid token
+        404:
+          description: Event offer not found
+        500:
+          description: Server error
+
+  /api/event-offers:
+    get:
+      summary: Get all event offers (admin only)
+      tags: [EventOffers]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of all event offers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventOffer'
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        500:
+          description: Server error
+
+    post:
+      summary: Create a new event offer (admin only)
+      tags: [EventOffers]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - type
+                - startDate
+                - endDate
+              properties:
+                title:
+                  type: string
+                  description: Title of the event/offer
+                description:
+                  type: string
+                  description: Detailed description of the event/offer
+                type:
+                  type: string
+                  enum: [holiday, seasonal, promotion, special]
+                  description: Type of event/offer
+                startDate:
+                  type: string
+                  format: date-time
+                  description: When the event/offer starts
+                endDate:
+                  type: string
+                  format: date-time
+                  description: When the event/offer ends
+                image:
+                  type: object
+                  properties:
+                    public_id:
+                      type: string
+                    url:
+                      type: string
+                discount:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [percentage, fixed]
+                    value:
+                      type: number
+                    code:
+                      type: string
+                      description: Optional related coupon code
+                isActive:
+                  type: boolean
+                  description: Whether the event/offer is currently active
+                targetAudience:
+                  type: string
+                  enum: [all, new, existing, vip]
+                  description: Target user segment for this event/offer
+      responses:
+        201:
+          description: Event offer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventOffer'
+        400:
+          description: Invalid input data
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        500:
+          description: Server error
+
+  /api/event-offers/{id}:
+    get:
+      summary: Get event offer by ID (admin only)
+      tags: [EventOffers]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Event offer ID
+      responses:
+        200:
+          description: Event offer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventOffer'
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: Event offer not found
+        500:
+          description: Server error
+
+    put:
+      summary: Update an event offer (admin only)
+      tags: [EventOffers]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Event offer ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                type:
+                  type: string
+                  enum: [holiday, seasonal, promotion, special]
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                image:
+                  type: object
+                  properties:
+                    public_id:
+                      type: string
+                    url:
+                      type: string
+                discount:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [percentage, fixed]
+                    value:
+                      type: number
+                    code:
+                      type: string
+                isActive:
+                  type: boolean
+                targetAudience:
+                  type: string
+                  enum: [all, new, existing, vip]
+      responses:
+        200:
+          description: Event offer updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventOffer'
+        400:
+          description: Invalid input data
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: Event offer not found
+        500:
+          description: Server error
+
+    delete:
+      summary: Delete an event offer (admin only)
+      tags: [EventOffers]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Event offer ID
+      responses:
+        200:
+          description: Event offer deleted successfully
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: Event offer not found
+        500:
+          description: Server error
+
+components:
+  schemas:
+    EventOffer:
+      type: object
+      required:
+        - title
+        - description
+        - type
+        - startDate
+        - endDate
+      properties:
+        _id:
+          type: string
+          description: The auto-generated id of the event offer
+        title:
+          type: string
+          description: Title of the event/offer
+        description:
+          type: string
+          description: Detailed description of the event/offer
+        type:
+          type: string
+          enum: [holiday, seasonal, promotion, special]
+          description: Type of event/offer
+        startDate:
+          type: string
+          format: date-time
+          description: When the event/offer starts
+        endDate:
+          type: string
+          format: date-time
+          description: When the event/offer ends
+        image:
+          type: object
+          properties:
+            public_id:
+              type: string
+            url:
+              type: string
+        discount:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [percentage, fixed]
+            value:
+              type: number
+            code:
+              type: string
+              description: Related coupon code
+        isActive:
+          type: boolean
+          description: Whether the event/offer is currently active
+        targetAudience:
+          type: string
+          enum: [all, new, existing, vip]
+          description: Target user segment for this event/offer
+        metrics:
+          type: object
+          properties:
+            views:
+              type: number
+              description: Number of times the offer was viewed
+            clicks:
+              type: number
+              description: Number of times the offer was clicked
+            conversions:
+              type: number
+              description: Number of times the offer was used
+            conversionRate:
+              type: number
+              description: Percentage of clicks that resulted in conversions
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

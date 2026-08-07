@@ -1,0 +1,344 @@
+tags:
+  - name: Coupons
+    description: Coupon management
+
+paths:
+  /api/coupons:
+    get:
+      summary: Get all coupons
+      tags: [Coupons]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of all coupons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Coupon'
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        500:
+          description: Server error
+
+    post:
+      summary: Create a new coupon
+      tags: [Coupons]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - description
+                - discountType
+                - discountValue
+                - endDate
+              properties:
+                code:
+                  type: string
+                  description: Unique coupon code
+                description:
+                  type: string
+                  description: Coupon description
+                discountType:
+                  type: string
+                  enum: [percentage, fixed]
+                  description: Type of discount
+                discountValue:
+                  type: number
+                  description: Amount of discount
+                minOrderValue:
+                  type: number
+                  description: Minimum order value required to apply the coupon
+                maxDiscountAmount:
+                  type: number
+                  description: Maximum discount amount applicable
+                startDate:
+                  type: string
+                  format: date-time
+                  description: When the coupon becomes active
+                endDate:
+                  type: string
+                  format: date-time
+                  description: When the coupon expires
+                isActive:
+                  type: boolean
+                  description: Whether the coupon is active
+                usageLimit:
+                  type: number
+                  description: Maximum number of times the coupon can be used
+                userLimit:
+                  type: number
+                  description: Maximum number of times a user can use this coupon
+                applicableProducts:
+                  type: array
+                  items:
+                    type: string
+                  description: List of product IDs this coupon applies to
+                applicableCategories:
+                  type: array
+                  items:
+                    type: string
+                  description: List of category IDs this coupon applies to
+                excludedProducts:
+                  type: array
+                  items:
+                    type: string
+                  description: List of product IDs this coupon does not apply to
+      responses:
+        201:
+          description: Coupon created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        400:
+          description: Invalid input data
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        500:
+          description: Server error
+
+  /api/coupons/validate/{code}:
+    get:
+      summary: Get coupon by code for validation
+      tags: [Coupons]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema:
+            type: string
+          description: Coupon code
+      responses:
+        200:
+          description: Coupon details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        401:
+          description: Unauthorized - missing or invalid token
+        404:
+          description: Coupon not found
+        500:
+          description: Server error
+
+  /api/coupons/validate:
+    post:
+      summary: Validate coupon for an order
+      tags: [Coupons]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - orderTotal
+              properties:
+                code:
+                  type: string
+                  description: Coupon code
+                orderTotal:
+                  type: number
+                  description: Current order total
+                products:
+                  type: array
+                  items:
+                    type: string
+                  description: Product IDs in the order
+      responses:
+        200:
+          description: Coupon validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isValid:
+                    type: boolean
+                  discount:
+                    type: number
+                  message:
+                    type: string
+        400:
+          description: Invalid input data
+        401:
+          description: Unauthorized - missing or invalid token
+        404:
+          description: Coupon not found
+        500:
+          description: Server error
+
+  /api/coupons/{id}:
+    get:
+      summary: Get coupon by ID
+      tags: [Coupons]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Coupon ID
+      responses:
+        200:
+          description: Coupon details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: Coupon not found
+        500:
+          description: Server error
+
+    put:
+      summary: Update a coupon
+      tags: [Coupons]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Coupon ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                description:
+                  type: string
+                discountType:
+                  type: string
+                  enum: [percentage, fixed]
+                discountValue:
+                  type: number
+                minOrderValue:
+                  type: number
+                maxDiscountAmount:
+                  type: number
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                isActive:
+                  type: boolean
+                usageLimit:
+                  type: number
+                userLimit:
+                  type: number
+                applicableProducts:
+                  type: array
+                  items:
+                    type: string
+                applicableCategories:
+                  type: array
+                  items:
+                    type: string
+                excludedProducts:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        200:
+          description: Coupon updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        400:
+          description: Invalid input data
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: Coupon not found
+        500:
+          description: Server error
+
+    delete:
+      summary: Delete a coupon
+      tags: [Coupons]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Coupon ID
+      responses:
+        200:
+          description: Coupon deleted successfully
+        401:
+          description: Unauthorized - missing or invalid token
+        403:
+          description: Forbidden - user does not have admin rights
+        404:
+          description: Coupon not found
+        500:
+          description: Server error
+
+  /api/coupons/{id}/increment:
+    post:
+      summary: Increment coupon usage count
+      tags: [Coupons]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Coupon ID
+      responses:
+        200:
+          description: Coupon usage count incremented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        400:
+          description: Invalid operation
+        401:
+          description: Unauthorized - missing or invalid token
+        404:
+          description: Coupon not found
+        500:
+          description: Server error
