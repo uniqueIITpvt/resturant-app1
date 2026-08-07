@@ -1,11 +1,11 @@
 {
   "rewrites": [{ "source": "/(.*)", "destination": "/$1" }],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://resturant-app-backend-red.vercel.app"
+    "NEXT_PUBLIC_API_URL": "https://resturant-app1backend.vercel.app"
   },
   "build": {
     "env": {
-      "NEXT_PUBLIC_API_URL": "https://resturant-app-backend-red.vercel.app"
+      "NEXT_PUBLIC_API_URL": "https://resturant-app1backend.vercel.app"
     }
   }
 }
