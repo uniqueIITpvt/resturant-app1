@@ -25,7 +25,7 @@ export default function AboutPage() {
         </div>
         <div className='container mx-auto px-4 relative z-10 text-center'>
           <h1 className='text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4'>
-            About U
+            About Us
           </h1>
           <p className='text-xl text-white/90 max-w-2xl mx-auto'>
             Crafting culinary experiences that delight all your senses
